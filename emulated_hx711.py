@@ -20,15 +20,15 @@ class HX711:
         # Mutex for reading from the HX711, in case multiple threads in client
         # software try to access get values from the class at the same time.
         self.readLock = threading.Lock()
-        
+
         self.GAIN = 0
         self.REFERENCE_UNIT = 1  # The value returned by the hx711 that corresponds to your reference unit AFTER dividing by the SCALE.
-        
+
         self.OFFSET = 1
-        self.lastVal = long(0)
+        self.lastVal = int(0)
 
         self.DEBUG_PRINTING = False
-        
+
         self.byte_format = 'MSB'
         self.bit_format = 'MSB'
 
@@ -58,11 +58,11 @@ class HX711:
 
           return 0x800000 + diff
 
-        
+
     def convertFromTwosComplement24bit(self, inputValue):
         return -(inputValue & 0x800000) + (inputValue & 0x7fffff)
 
-    
+
     def is_ready(self):
         # Calculate how long we should be waiting between samples, given the
         # sample rate.
@@ -70,7 +70,7 @@ class HX711:
 
         return time.time() >= self.lastReadTime + sampleDelaySeconds
 
-    
+
     def set_gain(self, gain):
         if gain is 128:
             self.GAIN = 1
@@ -82,7 +82,7 @@ class HX711:
         # Read out a set of raw bytes and throw it away.
         self.readRawBytes()
 
-        
+
     def get_gain(self):
         if self.GAIN == 1:
             return 128
@@ -93,7 +93,7 @@ class HX711:
 
         # Shouldn't get here.
         return 0
-        
+
 
     def readRawBytes(self):
         # Wait for and get the Read Lock, incase another thread is already
@@ -108,7 +108,7 @@ class HX711:
 
         # Generate a 24bit 2s complement sample for the virtual HX711.
         rawSample = self.convertToTwosComplement24bit(self.generateFakeSample())
-        
+
         # Read three bytes of data from the HX711.
         firstByte  = (rawSample >> 16) & 0xFF
         secondByte = (rawSample >> 8)  & 0xFF
@@ -116,7 +116,7 @@ class HX711:
 
         # Release the Read Lock, now that we've finished driving the virtual HX711
         # serial interface.
-        self.readLock.release()           
+        self.readLock.release()
 
         # Depending on how we're configured, return an orderd list of raw byte
         # values.
@@ -133,7 +133,7 @@ class HX711:
 
         if self.DEBUG_PRINTING:
             print(dataBytes,)
-        
+
         # Join the raw bytes into a single 24bit 2s complement value.
         twosComplementValue = ((dataBytes[0] << 16) |
                                (dataBytes[1] << 8)  |
@@ -141,7 +141,7 @@ class HX711:
 
         if self.DEBUG_PRINTING:
             print("Twos: 0x%06x" % twosComplementValue)
-        
+
         # Convert from 24bit twos-complement to a signed value.
         signedIntValue = self.convertFromTwosComplement24bit(twosComplementValue)
 
@@ -151,7 +151,7 @@ class HX711:
         # Return the sample value we've read from the HX711.
         return int(signedIntValue)
 
-    
+
     def read_average(self, times=3):
         # Make sure we've been asked to take a rational amount of samples.
         if times <= 0:
@@ -189,17 +189,17 @@ class HX711:
         # Return the mean of remaining samples.
         return sum(valueList) / len(valueList)
 
-    
+
     def get_value(self, times=3):
         return self.read_average(times) - self.OFFSET
 
-    
+
     def get_weight(self, times=3):
         value = self.get_value(times)
         value = value / self.REFERENCE_UNIT
         return value
 
-    
+
     def tare(self, times=15):
         # If we aren't simulating Taring because it takes too long, just skip it.
         if not self.simulateTare:
@@ -213,7 +213,7 @@ class HX711:
 
         if self.DEBUG_PRINTING:
             print("Tare value:", value)
-        
+
         self.set_offset(value)
 
         # Restore the reference unit, now that we've got our offset.
@@ -221,7 +221,7 @@ class HX711:
 
         return value;
 
-    
+
     def set_reading_format(self, byte_format="LSB", bit_format="MSB"):
 
         if byte_format == "LSB":
@@ -238,16 +238,16 @@ class HX711:
         else:
             print("Unrecognised bit_format: \"%s\"" % bit_format)
 
-            
+
 
     def set_offset(self, offset):
         self.OFFSET = offset
 
-        
+
     def get_offset(self):
         return self.OFFSET
 
-    
+
     def set_reference_unit(self, reference_unit):
         # Make sure we aren't asked to use an invalid reference unit.
         if reference_unit == 0:
@@ -267,7 +267,7 @@ class HX711:
 
         # Release the Read Lock, now that we've finished driving the HX711
         # serial interface.
-        self.readLock.release()           
+        self.readLock.release()
 
 
     def power_up(self):
