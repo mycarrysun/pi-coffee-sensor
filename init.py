@@ -20,13 +20,13 @@ reference_unit = 1
 
 # TODO determine what values need to be put here after calibrating the scale
 weight_value_map = {
-    COLD_BREW: {
+    [COLD_BREW]: {
         0: 900,    # we are out
         1: 12500,  # almost out
         2: 24000,  # going quickly!
         3: 36000,  # we have some!
     },
-    KOMBUCHA: {
+    [KOMBUCHA]: {
         0: 900,    # we are out
         1: 12500,  # almost out
         2: 24000,  # going quickly!
@@ -118,8 +118,7 @@ while True:
         hx.power_down()
 
         body = {
-            'beverage': current_beverage,
-            'level': send_level,
+            [current_beverage]: send_level
         }
 
         requests.post('http://whats-on-tap.nextwebtoday.com/api', data=body)
