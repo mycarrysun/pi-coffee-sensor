@@ -1,19 +1,25 @@
 #! /usr/bin/python3
 
 import time
-import sys
 import requests
+import RPi.GPIO as GPIO
 
 sleep_time = 1
 
 COLD_BREW = 'coldBrew'
 KOMBUCHA = 'kombucha'
+PIN_LAYOUT = {
+    [COLD_BREW]: 1,
+    [KOMBUCHA]: 2,
+}
 
 
 def get_switch_value(switch):
-    # TODO get the switches value here
-    value = 0
-    return value
+    GPIO.setmode(GPIO.BOARD)
+    pin = PIN_LAYOUT[switch]
+    GPIO.setup(pin, GPIO.IN)
+
+    return GPIO.input(pin)
 
 
 while True:
