@@ -2,11 +2,39 @@
 
 import time
 import sys
+import requests
+
+current_beverage = sys.argv[1]
+
+COLD_BREW = 'coldBrew'
+KOMBUCHA = 'kombucha'
+AVAILABLE_DRINKS = (COLD_BREW, KOMBUCHA)
+
+if current_beverage not in AVAILABLE_DRINKS:
+    raise Exception("First argument must be the beverage you are measuring\n{}".format(AVAILABLE_DRINKS))
 
 EMULATE_HX711 = False
 
 # TODO find out what the reference unit is here
-referenceUnit = 1
+reference_unit = 1
+
+# TODO determine what values need to be put here after calibrating the scale
+weight_value_map = {
+    COLD_BREW: {
+        0: 900,    # we are out
+        1: 12500,  # almost out
+        2: 24000,  # going quickly!
+        3: 36000,  # we have some!
+    },
+    KOMBUCHA: {
+        0: 900,    # we are out
+        1: 12500,  # almost out
+        2: 24000,  # going quickly!
+        3: 36000,  # we have some!
+    }
+}
+
+weight_values = weight_value_map[current_beverage]
 
 if not EMULATE_HX711:
     import RPi.GPIO as GPIO
@@ -43,7 +71,7 @@ hx.set_reading_format("MSB", "MSB")
 # and I got numbers around 184000 when I added 2kg. So, according to the rule of thirds:
 # If 2000 grams is 184000 then 1000 grams is 184000 / 2000 = 92.
 # hx.set_reference_unit(113)
-hx.set_reference_unit(referenceUnit)
+hx.set_reference_unit(reference_unit)
 
 hx.reset()
 
@@ -57,7 +85,7 @@ print("Tare done! Add weight now...")
 
 while True:
     try:
-        # These three lines are usefull to debug wether to use MSB or LSB in the reading formats
+        # These three lines are useful to debug whether to use MSB or LSB in the reading formats
         # for the first parameter of "hx.set_reading_format("LSB", "MSB")".
         # Comment the two lines "val = hx.get_weight(5)" and "print val" and uncomment
         # these three lines to see what it prints.
@@ -66,9 +94,20 @@ while True:
         # binary_string = hx.get_binary_string()
         # print binary_string + " " + np_arr8_string
 
-        # Prints the weight. Comment if you're debbuging the MSB and LSB issue.
-        val = hx.get_weight(5)
-        print(val)
+        # Prints the weight. Comment if you're debugging the MSB and LSB issue.
+        current_weight = hx.get_weight(5)
+
+        send_level = 0
+
+        # determine the response value we should send
+        for i in weight_values:
+            check_weight = weight_values[i]
+
+            if current_weight < check_weight:
+                send_level = i
+                break
+            else:
+                send_level = i+1
 
         # To get weight from both channels (if you have load cells hooked up
         # to both channel A and B), do something like this
@@ -77,6 +116,14 @@ while True:
         # print "A: %s  B: %s" % ( val_A, val_B )
 
         hx.power_down()
+
+        body = {
+            'beverage': current_beverage,
+            'level': send_level,
+        }
+
+        requests.post('http://whats-on-tap.nextwebtoday.com/api', data=body)
+
         hx.power_up()
         time.sleep(1)
 
