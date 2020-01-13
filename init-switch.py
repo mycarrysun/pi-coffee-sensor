@@ -30,6 +30,8 @@ while True:
             [KOMBUCHA]: get_switch_value(KOMBUCHA),
         }
 
+        # TODO add header for authentication
+
         requests.post('http://whats-on-tap.nextwebtoday.com/api', data=body)
 
         time.sleep(sleep_time)
